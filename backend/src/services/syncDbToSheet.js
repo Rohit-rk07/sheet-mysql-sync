@@ -18,7 +18,7 @@ export async function syncDbToSheet({
 
         const mapping = await getMappingByPk(syncTableId, syncId);
 
-        if (!mapping || mapping.last_updated_from === "SHEET") {
+        if (!mapping) {
             continue;
         }
 
