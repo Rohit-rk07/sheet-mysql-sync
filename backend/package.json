@@ -1,0 +1,18 @@
+{
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "googleapis": "^171.0.0",
+    "mysql2": "^3.16.2",
+    "node-cron": "^4.2.1",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  },
+  "type": "module"
+}
