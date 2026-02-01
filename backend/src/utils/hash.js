@@ -1,8 +1,11 @@
 import crypto from "crypto";
 
-export function hashRow(row) {
+
+export function generateRowHash(rowObj) {
     return crypto
         .createHash("sha256")
-        .update(JSON.stringify(row))
+        .update(JSON.stringify(rowObj))
         .digest("hex");
 }
+
+

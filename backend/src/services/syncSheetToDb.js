@@ -1,6 +1,7 @@
 import { ensureTableExists } from "./dbSchema.service.js";
 import { upsertRow } from "./dbWrite.service.js";
 import { getMapping, upsertMapping } from "./mapping.service.js";
+import { generateSyncId } from "../utils/id.js";
 
 export async function syncSheetToDb({
     syncTableId,
@@ -8,32 +9,52 @@ export async function syncSheetToDb({
     header,
     processedRows
 }) {
-    // 1. Ensure table exists
     await ensureTableExists(tableName, header);
 
     for (const row of processedRows) {
-        const { syncId, hash, data } = row;
+        const { sheetRowId, hash, data } = row;
 
-        const mapping = await getMapping(syncTableId, syncId);
+        // 1️⃣ lookup by SHEET ROW ID
+        const mapping = await getMapping(syncTableId, sheetRowId);
 
-        // 2. Skip if unchanged or DB was source
-        if (
-            mapping &&
-            mapping.row_hash === hash &&
-            mapping.last_updated_from === "DB"
-        ) {
-            continue;
+        // ❗ remove internal-only field
+        const cleanData = { ...data };
+        delete cleanData._sheet_row_id;
+
+        let syncId;
+
+        if (!mapping) {
+            // 🆕 NEW ROW
+            syncId = generateSyncId();
+            cleanData._sync_id = syncId;
+
+            await upsertRow(tableName, cleanData);
+
+            await upsertMapping(
+                syncTableId,
+                sheetRowId,
+                syncId,
+                hash,
+                "SHEET"
+            );
+
+        } else {
+            syncId = mapping.mysql_pk;
+
+            // 🔁 UPDATE ONLY IF CHANGED
+            if (mapping.row_hash !== hash) {
+                cleanData._sync_id = syncId;
+
+                await upsertRow(tableName, cleanData);
+
+                await upsertMapping(
+                    syncTableId,
+                    sheetRowId,
+                    syncId,
+                    hash,
+                    "SHEET"
+                );
+            }
         }
-
-        // 3. Write to DB
-        await upsertRow(tableName, data);
-
-        // 4. Update mapping
-        await upsertMapping(
-            syncTableId,
-            syncId,
-            hash,
-            "SHEET"
-        );
     }
 }

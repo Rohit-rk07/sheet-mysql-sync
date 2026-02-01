@@ -1,13 +1,11 @@
 export function normalizeRows(header, rows) {
-    return rows
-        .filter(row => row.length > 0) // remove completely empty rows
-        .map(row => {
-            const obj = {};
+    return rows.map(({ sheetRowId, values }) => {
+        const row = { _sheet_row_id: sheetRowId };
 
-            header.forEach((col, index) => {
-                obj[col] = row[index] ?? "";
-            });
-
-            return obj;
+        header.forEach((col, i) => {
+            row[col] = values[i] ?? null;
         });
+
+        return row;
+    });
 }
