@@ -18,6 +18,24 @@ export async function getMappingByPk(syncTableId, mysqlPk) {
     return rows[0];
 }
 
+export async function getAllMappings(syncTableId) {
+    const [rows] = await db.query(
+        `SELECT * FROM row_mapping
+         WHERE sync_table_id = ?`,
+        [syncTableId]
+    );
+    return rows;
+}
+
+export async function updateMappingSheetRowId(syncTableId, mysqlPk, newSheetRowId) {
+    await db.query(
+        `UPDATE row_mapping
+         SET sheet_row_id = ?
+         WHERE sync_table_id = ? AND mysql_pk = ?`,
+        [newSheetRowId, syncTableId, mysqlPk]
+    );
+}
+
 export async function upsertMapping(
     syncTableId,
     sheetRowId,
@@ -31,6 +49,7 @@ export async function upsertMapping(
           (sync_table_id, sheet_row_id, mysql_pk, row_hash, last_updated_from)
         VALUES (?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
+          mysql_pk = VALUES(mysql_pk),
           row_hash = VALUES(row_hash),
           last_updated_from = VALUES(last_updated_from)
         `,

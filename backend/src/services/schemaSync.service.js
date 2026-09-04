@@ -1,6 +1,7 @@
 import { diffColumns } from "./columnDiff.service.js";
 import { getDbColumns, addColumnsToDb } from "./schema.service.js";
 import { extendSheetHeader } from "./sheetWrite.service.js";
+import logger from "../utils/logger.js";
 
 export async function syncSchema({
     sheetHeader,
@@ -8,25 +9,24 @@ export async function syncSchema({
     sheetName,
     tableName
 }) {
-    console.log("🚨 syncSchema CALLED", { tableName });
+    logger.debug("syncSchema called", { tableName });
 
     const dbColumns = await getDbColumns(tableName);
-    console.log("🧱 DB columns:", dbColumns);
+    logger.debug("DB columns retrieved", { columns: dbColumns });
 
     const { toAddInDb, toAddInSheet } =
         diffColumns(sheetHeader, dbColumns);
 
-    console.log("🔍 Column diff:", {
-        toAddInDb,
-        toAddInSheet
-    });
+    if (toAddInDb.length || toAddInSheet.length) {
+        logger.info("Column diff detected", { toAddInDb, toAddInSheet });
+    }
 
     if (toAddInDb.length) {
         await addColumnsToDb(tableName, toAddInDb);
     }
 
     if (toAddInSheet.length) {
-        console.log("📄 Will add columns to sheet:", toAddInSheet);
+        logger.info("Extending sheet header", { newColumns: toAddInSheet });
 
         await extendSheetHeader(
             sheetId,
@@ -35,4 +35,7 @@ export async function syncSchema({
             toAddInSheet
         );
     }
+
+    // Return the updated unified header for downstream sync operations in this cycle
+    return [...sheetHeader, ...toAddInSheet];
 }

@@ -1,4 +1,32 @@
 import { sheetsClient } from "../config/google.js";
+import logger from "../utils/logger.js";
+
+import { columnToLetter, parseRowIdFromRange } from "../utils/columnLetter.js";
+
+export { columnToLetter, parseRowIdFromRange };
+
+/**
+ * Appends a new row to the Google Sheet and returns the assigned 1-based row number.
+ */
+export async function appendSheetRow(sheetId, sheetName, values) {
+    const range = `${sheetName}!A:A`;
+
+    const res = await sheetsClient.spreadsheets.values.append({
+        spreadsheetId: sheetId,
+        range,
+        valueInputOption: "RAW",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: {
+            values: [values]
+        }
+    });
+
+    const updatedRange = res.data.updates?.updatedRange;
+    const sheetRowId = parseRowIdFromRange(updatedRange);
+
+    logger.info("Sheet row appended", { range: updatedRange, sheetRowId });
+    return sheetRowId;
+}
 
 export async function updateSheetRow(
     sheetId,
@@ -27,15 +55,16 @@ export async function extendSheetHeader(
     if (!newColumns.length) return;
 
     const updatedHeader = [...existingHeader, ...newColumns];
+    const endCol = columnToLetter(updatedHeader.length);
 
     await sheetsClient.spreadsheets.values.update({
         spreadsheetId: sheetId,
-        range: `${sheetName}!A1:${String.fromCharCode(64 + updatedHeader.length)}1`,
+        range: `${sheetName}!A1:${endCol}1`,
         valueInputOption: "RAW",
         requestBody: {
             values: [updatedHeader]
         }
     });
 
-    console.log("📄 Sheet header extended:", newColumns);
+    logger.info("Sheet header extended", { newColumns });
 }

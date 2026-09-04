@@ -6,3 +6,10 @@ export async function getActiveSyncTables() {
     `);
     return rows;
 }
+
+export async function updateLastSyncedAt(id) {
+    await db.query(
+        `UPDATE sync_tables SET last_synced_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [id]
+    );
+}

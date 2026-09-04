@@ -1,20 +1,20 @@
 import { db } from "../db/mysql.js";
+import { safeIdentifier } from "../utils/sanitize.js";
+import logger from "../utils/logger.js";
 
 export async function getDbColumns(tableName) {
-    const [rows] = await db.query(
-        `SHOW COLUMNS FROM \`${tableName}\``
-    );
-    console.log("DB columns:", rows.map(r => r.Field));
+    const safeName = safeIdentifier(tableName, "table name");
+
+    const [rows] = await db.query(`SHOW COLUMNS FROM ${safeName}`);
     return rows.map(r => r.Field);
 }
 
 export async function addColumnsToDb(tableName, columns) {
+    const safeName = safeIdentifier(tableName, "table name");
+
     for (const col of columns) {
-        await db.query(
-            `ALTER TABLE \`${tableName}\`
-             ADD COLUMN \`${col}\` TEXT NULL`
-        );
-        console.log(`🧱 DB column added: ${col}`);
+        const safeCol = safeIdentifier(col, "column name");
+        await db.query(`ALTER TABLE ${safeName} ADD COLUMN ${safeCol} TEXT NULL`);
+        logger.info("DB column added", { table: tableName, column: col });
     }
 }
-
